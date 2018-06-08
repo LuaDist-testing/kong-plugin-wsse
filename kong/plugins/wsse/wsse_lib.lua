@@ -8,36 +8,48 @@ local Wsse = {}
 
 local function check_required_params(wsse_params)
     if wsse_params["username"] == nil then
-        Logger.getInstance(ngx):logWarning({msg = "The Username field is missing from WSSE authenticaion header."})
-        error({msg = "The Username field is missing from WSSE authenticaion header."})
+        Logger.getInstance(ngx):logWarning({msg = "The Username field is missing from WSSE authentication header."})
+        error({msg = "The Username field is missing from WSSE authentication header."})
     end
     if wsse_params["password_digest"] == nil then
-        Logger.getInstance(ngx):logWarning({msg = "The PasswordDigest field is missing from WSSE authenticaion header."})
-        error({msg = "The PasswordDigest field is missing from WSSE authenticaion header."})
+        Logger.getInstance(ngx):logWarning({msg = "The PasswordDigest field is missing from WSSE authentication header."})
+        error({msg = "The PasswordDigest field is missing from WSSE authentication header."})
     end
     if wsse_params["nonce"] == nil then
-        Logger.getInstance(ngx):logWarning({msg = "The Nonce field is missing from WSSE authenticaion header."})
-        error({msg = "The Nonce field is missing from WSSE authenticaion header."})
+        Logger.getInstance(ngx):logWarning({msg = "The Nonce field is missing from WSSE authentication header."})
+        error({msg = "The Nonce field is missing from WSSE authentication header."})
     end
     if wsse_params["created"] == nil then
-        Logger.getInstance(ngx):logWarning({msg = "The Created field is missing from WSSE authenticaion header."})
-        error({msg = "The Created field is missing from WSSE authenticaion header."})
+        Logger.getInstance(ngx):logWarning({msg = "The Created field is missing from WSSE authentication header."})
+        error({msg = "The Created field is missing from WSSE authentication header."})
     end
 end
 
 local function parse_field(header_string, field_name)
-    field_name_case_insensitive = field_name:gsub("(.)", function(letter)
+    local field_name_case_insensitive = field_name:gsub("(.)", function(letter)
         return string.format("[%s%s]", letter:lower(), letter:upper())
     end)
 
     return string.match(header_string, '[, ]' .. field_name_case_insensitive .. '%s*=%s*"(.-)"')
 end
 
-local function parse_header(header_string)
-    if (header_string == "") then
-        Logger.getInstance(ngx):logWarning({msg = "WSSE authenticaion header is empty."})
-        error({msg = "WSSE authenticaion header is empty."})
+local function ensure_header_is_present(header_string)
+    if not header_string then
+        Logger.getInstance(ngx):logWarning({msg = "WSSE authentication header is missing."})
+        error({msg = "WSSE authentication header is missing."})
     end
+end
+
+local function ensure_header_is_not_empty(header_string)
+    if header_string == "" then
+        Logger.getInstance(ngx):logWarning({msg = "WSSE authentication header is empty."})
+        error({msg = "WSSE authentication header is empty."})
+    end
+end
+
+local function parse_header(header_string)
+    ensure_header_is_present(header_string)
+    ensure_header_is_not_empty(header_string)
 
     local wsse_params = {
         username = parse_field(header_string, 'Username'),
@@ -66,13 +78,15 @@ end
 
 function Wsse:new(key_db, timeframe_validation_treshhold_in_minutes)
     self.__index = self
-    local self = setmetatable({}, self)
+
+    local obj = {}
+    setmetatable(obj, self)
     local timeframe_validation_treshhold_in_seconds = timeframe_validation_treshhold_in_minutes * 60 or 300
 
-    self.key_db = key_db
-    self.timeframe_validator = TimeframeValidator(timeframe_validation_treshhold_in_seconds)
+    obj.key_db = key_db
+    obj.timeframe_validator = TimeframeValidator(timeframe_validation_treshhold_in_seconds)
 
-    return self
+    return obj
 end
 
 function Wsse:authenticate(header_string)
@@ -87,11 +101,14 @@ function Wsse:authenticate(header_string)
         strict_timeframe_validation = wsse_key['strict_timeframe_validation']
         secret = wsse_key['secret']
     end)
+
     if not status then
         Logger.getInstance(ngx):logWarning({msg = "Credentials are invalid."})
         error({msg = "Credentials are invalid."})
     end
+
     validate_credentials(wsse_params, secret)
+
     self.timeframe_validator:validate(wsse_params.created, strict_timeframe_validation)
 
     return wsse_key

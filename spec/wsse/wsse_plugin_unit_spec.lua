@@ -39,11 +39,11 @@ describe("wsse plugin", function()
     strict_timeframe_validation = true
   }
 
-  Wsse.authenticate = function()
-    return test_wsse_key
-  end
-
   before_each(function()
+    Wsse.authenticate = function()
+      return test_wsse_key
+    end
+
     local ngx_req_headers = {}
     local stubbed_ngx = {
       req = {
@@ -78,8 +78,13 @@ describe("wsse plugin", function()
 
   describe("#access", function()
 
-    it("set anonymous header to true when request not has wsse header", function()
+    it("should indicate anonymous consumer when WSSE auth fails and anonymous passthrough is enabled", function()
+      Wsse.authenticate = function()
+        error("Some error...")
+      end
+
       handler:access(mock_config)
+
       assert.are.equal(true, ngx.req.get_headers()[constants.HEADERS.ANONYMOUS])
     end)
 
@@ -104,8 +109,13 @@ describe("wsse plugin", function()
       assert.are.equal(test_wsse_key, ngx.ctx.authenticated_credential)
     end)
 
-    it("set anonymous consumer on ngx context and not set credentials when X-WSSE header was not found", function()
+    it("should clear authenticated credentials and set anonymous as consumer when auth failed", function()
+      Wsse.authenticate = function()
+          error("Some error...")
+      end
+
       handler:access(mock_config)
+    
       assert.are.equal(anonymous_consumer, ngx.ctx.authenticated_consumer)
       assert.are.equal(nil, ngx.ctx.authenticated_credential)
     end)

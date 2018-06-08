@@ -14,33 +14,31 @@ local function set_consumer(consumer, wsse_key)
     ngx.req.set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
     ngx.req.set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
     ngx.req.set_header(constants.HEADERS.CONSUMER_USERNAME, consumer.username)
+
     ngx.ctx.authenticated_consumer = consumer
 
     if wsse_key then
         ngx.req.set_header(constants.HEADERS.CREDENTIAL_USERNAME, wsse_key.username)
         ngx.req.set_header(constants.HEADERS.ANONYMOUS, nil)
+
         ngx.ctx.authenticated_credential = wsse_key
     else
         ngx.req.set_header(constants.HEADERS.ANONYMOUS, true)
     end
 end
 
-local function do_authentication(wsse_header_string, timeframe_validation_treshhold_in_minutes, consumer_db)
-  local wsse_key
-  local wsse = Wsse:new(KeyDb(), timeframe_validation_treshhold_in_minutes)
+local function authenticate(auth_header, timeframe_threshold_in_minutes)
+    local authenticator = Wsse:new(KeyDb(), timeframe_threshold_in_minutes)
 
-  local success, err = pcall(function()
-    wsse_key = wsse:authenticate(wsse_header_string)
-  end)
+    return authenticator:authenticate(auth_header)
+end
 
-  if not success then
-    Logger.getInstance(ngx):logInfo({status = 401, msg = err.msg})
-    return responses.send(401, err.msg)
-  else
-    Logger.getInstance(ngx):logInfo({msg = "WSSE authentication was successful."})
-    local consumer = consumer_db.find_by_id(wsse_key.consumer_id)
-    set_consumer(consumer, wsse_key)
-  end
+local function anonymous_passthrough_is_enabled(plugin_config)
+    return plugin_config.anonymous ~= nil
+end
+
+local function already_authenticated_by_other_plugin(plugin_config, authenticated_credential)
+    return anonymous_passthrough_is_enabled(plugin_config) and authenticated_credential ~= nil
 end
 
 function WsseHandler:new()
@@ -50,36 +48,46 @@ end
 function WsseHandler:access(conf)
     WsseHandler.super.access(self)
 
-    if ngx.ctx.authenticated_credential and conf.anonymous ~= nil then
-        -- we're already authenticated, and we're configured for using anonymous,
-        -- hence we're in a logical OR between auth methods and we're already done.
+    if already_authenticated_by_other_plugin(conf, ngx.ctx.authenticated_credential) then
         return
     end
 
     local wsse_header_string = ngx.req.get_headers()["X-WSSE"]
-    local consumer_db = ConsumerDb()
 
-    local success, err = pcall(function()
-        if (wsse_header_string) then
-            do_authentication(wsse_header_string, conf.timeframe_validation_treshhold_in_minutes, consumer_db)
-        elseif (conf.anonymous == nil) then
-            local error_message = "WSSE authentication header not found!"
-            Logger.getInstance(ngx):logInfo({status = 401, msg = error_message})
-            return responses.send(401, error_message)
-        else
+    local successful_auth, error_or_wsse_key = pcall(
+        authenticate,
+        wsse_header_string,
+        conf.timeframe_validation_treshhold_in_minutes
+    )
+
+    local success, result = pcall(function()
+        if successful_auth then
+            Logger.getInstance(ngx):logInfo({msg = "WSSE authentication was successful."})
+
+            local consumer_db = ConsumerDb()
+            local consumer = consumer_db.find_by_id(error_or_wsse_key.consumer_id)
+
+            set_consumer(consumer, error_or_wsse_key)
+        elseif anonymous_passthrough_is_enabled(conf) then
+            Logger.getInstance(ngx):logInfo({msg = "WSSE authentication failed, allowing anonymous passthrough."})
+
+            local consumer_db = ConsumerDb()
             local consumer = consumer_db.find_by_id(conf.anonymous, true)
+
             set_consumer(consumer)
-            Logger.getInstance(ngx):logInfo({msg = "WSSE authentication skipped."})
+        else
+            Logger.getInstance(ngx):logInfo({status = 401, msg = error_or_wsse_key.msg})
+
+            return responses.send(401, error_or_wsse_key.msg)
         end
     end)
 
     if not success then
-        error(err)
-        Logger.getInstance(ngx).logError({
-            msg = err.msg
-        })
-        return responses.send(500, "Unexpected error occurred.")
+        Logger.getInstance(ngx).logError(result)
+        return responses.send(500, "An unexpected error occurred.")
     end
+
+    return result
 end
 
 return WsseHandler

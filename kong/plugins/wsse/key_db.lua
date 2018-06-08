@@ -23,7 +23,7 @@ function KeyDb.find_by_username(username)
 
     if err then
         Logger.getInstance(ngx):logError(err)
-        error({msg = "WSSE key can not be found."})
+        error({msg = "WSSE key could not be loaded from DB."})
     end
 
     if wsse_key == nil then
