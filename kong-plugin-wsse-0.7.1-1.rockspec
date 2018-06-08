@@ -1,17 +1,17 @@
 -- This file was automatically generated for the LuaDist project.
 
 package = "kong-plugin-wsse"
-version = "0.6.1-1"
+version = "0.7.1-1"
 supported_platforms = {"linux", "macosx"}
 -- LuaDist source
 source = {
-  tag = "0.6.1-1",
+  tag = "0.7.1-1",
   url = "git://github.com/LuaDist-testing/kong-plugin-wsse.git"
 }
 -- Original source
 -- source = {
 --   url = "git+https://github.com/emartech/kong-plugin-wsse.git",
---   tag = "0.6.1"
+--   tag = "0.7.1"
 -- }
 description = {
   summary = "WSSE auth plugin for Kong API gateway.",

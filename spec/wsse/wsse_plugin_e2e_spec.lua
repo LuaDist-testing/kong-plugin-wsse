@@ -1,6 +1,7 @@
 local helpers = require "spec.helpers"
 local cjson = require "cjson"
 local Wsse = require "kong.plugins.wsse.wsse_lib"
+local singletons = require "kong.singletons"
 
 describe("Plugin: wsse (access)", function()
   local client
@@ -124,7 +125,7 @@ describe("Plugin: wsse (access)", function()
 
     it("responds with status 401 when wsse key not found", function()
       assert(admin_client:send {
-        method = "POST",
+        method = "PUT",
         path = "/consumers/test/wsse_key/",
         body = {
           key = 'test001'

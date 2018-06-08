@@ -9,6 +9,10 @@ return {
 
         POST = function(self, dao_factory, helpers)
             crud.post(self.params, dao_factory.wsse_keys)
+        end,
+
+        PUT = function(self, dao_factory, helpers)
+            crud.put(self.params, dao_factory.wsse_keys)
         end
     }
 }

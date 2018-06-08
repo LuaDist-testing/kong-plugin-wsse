@@ -1,5 +1,4 @@
 kong:
-#  image: emarsys/kong-dev-docker:latest
   build: .
   dockerfile: Dockerfile
   depends_on:
@@ -17,7 +16,10 @@ kong:
     - KONG_CUSTOM_PLUGINS=wsse
     - KONG_NGINX_DAEMON=off
     - LUA_PATH=/kong-plugins/?.lua;/kong-plugins/?/init.lua;;
-  encrypted_env_file: env.encrypted
+    - KONG_ADMIN_ACCESS_LOG=/proc/1/fd/1
+    - KONG_ADMIN_ERROR_LOG=/proc/1/fd/2
+    - KONG_PROXY_ACCESS_LOG=/proc/1/fd/1
+    - KONG_PROXY_ERROR_LOG=/proc/1/fd/2
   ports:
     - 8000
     - 8001
@@ -28,7 +30,7 @@ kong:
     - ./spec/kong_tests.conf:/kong/spec/kong_tests.conf
 
 kong-database:
-  image: postgres:9.5
+  image: postgres:9.6
   environment:
     - POSTGRES_USER=kong
     - POSTGRES_DB=kong
