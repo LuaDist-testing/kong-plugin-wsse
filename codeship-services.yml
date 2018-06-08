@@ -16,6 +16,7 @@ kong:
     - KONG_NGINX_DAEMON=off
     - LUA_PATH=/kong-plugins/?.lua;/kong-plugins/?/init.lua;;
     - PGPASSWORD=kong
+  encrypted_env_file: env.encrypted
   ports:
     - 8000
     - 8001

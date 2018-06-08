@@ -23,6 +23,7 @@ services:
       - KONG_ADMIN_ERROR_LOG='/dev/stderr'
       - KONG_PROXY_ACCESS_LOG='/dev/stdout'
       - KONG_PROXY_ERROR_LOG='/dev/stderr'
+      - LUAROCKS_API_KEY=${LUAROCKS_API_KEY}
     ports:
       - 8000:8000
       - 8001:8001
