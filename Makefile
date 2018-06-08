@@ -16,7 +16,10 @@ restart: down up ##                 Restart containers
 clear-db:    ##                 Clears local db
 	bash -c "rm -rf .docker"
 
-complete-restart: clear-db down up ##                 Clear DB and restart containers
+build: ## Rebuild containers
+	docker-compose build --no-cache
+
+complete-restart: clear-db down up    ##                 Clear DB and restart containers
 
 publish: ##                 Build and publish plugin to luarocks
 	docker-compose run kong bash -c "cd /kong-plugins && chmod +x publish.sh && ./publish.sh"
@@ -24,7 +27,7 @@ publish: ##                 Build and publish plugin to luarocks
 test:    ##                 Run tests
 	docker-compose run kong bash -c "cd /kong && bin/busted /kong-plugins/spec"
 
-test-env:    ##                 Creates API (testapi) and consumer (TestUser)
+dev-env:    ##                 Creates API (testapi) and consumer (TestUser)
 	bash -c "curl -i -X POST --url http://localhost:8001/apis/ --data 'name=testapi' --data 'upstream_url=http://mockbin.org/request' --data 'uris=/'"
 	bash -c "curl -i -X POST --url http://localhost:8001/apis/testapi/plugins/ --data 'name=wsse'"
 	bash -c "curl -i -X POST --url http://localhost:8001/consumers/ --data 'username=TestUser'"
@@ -32,3 +35,6 @@ test-env:    ##                 Creates API (testapi) and consumer (TestUser)
 
 ping:    ##                 Pings kong on localhost:8000
 	bash -c "curl -i http://localhost:8000"
+
+ssh:    ##                 Pings kong on localhost:8000
+	docker-compose run kong bash

@@ -2,8 +2,10 @@
 
 echo "Checking whether PostgreSQL is available"
 
+export PGPASSWORD=$KONG_PG_PASSWORD
+
 function is_ready {
-    psql -h $KONG_PG_HOST -U kong -c "select 1" 1>/dev/null 2>/dev/null
+    psql -h $KONG_PG_HOST -U $KONG_PG_USER -p $KONG_PG_PORT -c "select 1" 1>/dev/null 2>/dev/null
 }
 
 retry_count=70

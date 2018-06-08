@@ -1,5 +1,6 @@
-local Object = require("kong.plugins.wsse.classic")
+local Object = require("classic")
 local date = require "date"
+local Logger = require "kong.plugins.wsse.logger"
 
 local TimeframeValidator = Object:extend()
 
@@ -44,10 +45,12 @@ function TimeframeValidator:validate(timestamp, strict_timeframe_validation)
     end
 
     if not is_valid_timestamp_format(timestamp) then
+        Logger.getInstance(ngx):logWarning({msg = "Timeframe is invalid"})
         error({msg = "Timeframe is invalid."})
     end
 
     if (is_timestamp_within_threshold(timestamp, self.threshold_in_seconds)) then
+        Logger.getInstance(ngx):logWarning({msg = "Timeframe is invalid"})
         error({msg = "Timeframe is invalid."})
     end
 

@@ -1,9 +1,16 @@
 local wsse_timeframe_validator = require "kong.plugins.wsse.timeframe_validator"
 local date = require "date"
+local Logger = require "kong.plugins.wsse.logger"
 
 describe("wsse timeframe validator", function()
 
     local timeframe_validator = wsse_timeframe_validator()
+
+    Logger.getInstance = function()
+        return {
+            logWarning = function() end
+        }
+    end
 
     describe("#validate", function()
 

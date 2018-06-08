@@ -7,7 +7,9 @@ kong:
   environment:
     - KONG_DATABASE=postgres
     - KONG_PG_HOST=kong-database
+    - KONG_PG_PORT=5432
     - KONG_PG_DATABASE=kong
+    - KONG_PG_USER=kong
     - KONG_PG_PASSWORD=kong
     - KONG_ADMIN_LISTEN=0.0.0.0:8001
     - KONG_ADMIN_LISTEN_SSL=0.0.0.0:8444
@@ -15,7 +17,6 @@ kong:
     - KONG_CUSTOM_PLUGINS=wsse
     - KONG_NGINX_DAEMON=off
     - LUA_PATH=/kong-plugins/?.lua;/kong-plugins/?/init.lua;;
-    - PGPASSWORD=kong
   encrypted_env_file: env.encrypted
   ports:
     - 8000
