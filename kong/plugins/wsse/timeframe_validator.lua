@@ -1,6 +1,6 @@
 local Object = require("classic")
 local date = require "date"
-local Logger = require "kong.plugins.wsse.logger"
+local Logger = require "logger"
 
 local TimeframeValidator = Object:extend()
 

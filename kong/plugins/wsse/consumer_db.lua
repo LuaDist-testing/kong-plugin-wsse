@@ -1,5 +1,5 @@
 local singletons = require "kong.singletons"
-local Logger = require "kong.plugins.wsse.logger"
+local Logger = require "logger"
 local Object = require("classic")
 
 local ConsumerDb = Object:extend()

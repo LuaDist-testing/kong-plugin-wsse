@@ -2,7 +2,7 @@ local base64 = require "base64"
 local sha1 = require "sha1"
 local uuid = require "uuid"
 local TimeframeValidator = require "kong.plugins.wsse.timeframe_validator"
-local Logger = require "kong.plugins.wsse.logger"
+local Logger = require "logger"
 
 local Wsse = {}
 

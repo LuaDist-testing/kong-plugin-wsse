@@ -3,7 +3,7 @@ local responses = require "kong.tools.responses"
 local BasePlugin = require "kong.plugins.base_plugin"
 local ConsumerDb = require "kong.plugins.wsse.consumer_db"
 local KeyDb = require "kong.plugins.wsse.key_db"
-local Logger = require "kong.plugins.wsse.logger"
+local Logger = require "logger"
 local Wsse = require "kong.plugins.wsse.wsse_lib"
 
 local WsseHandler = BasePlugin:extend()

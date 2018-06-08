@@ -1,5 +1,5 @@
 local wsse_lib = require "kong.plugins.wsse.wsse_lib"
-local Logger = require "kong.plugins.wsse.logger"
+local Logger = require "logger"
 
 
 describe("wsse lib", function()
