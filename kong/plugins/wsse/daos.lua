@@ -9,6 +9,7 @@ local SCHEMA = {
         consumer_id = {type = "id", required = true, foreign = "consumers:id"},
         key = {type = "string", unique = true, required = true},
         secret = {type = "string", default = utils.random_string},
+        strict_timeframe_validation = {type = "boolean", default = true}
     },
 }
 

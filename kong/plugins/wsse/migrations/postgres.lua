@@ -15,5 +15,14 @@ return {
         down = [[
               DROP TABLE wsse_keys;
             ]]
+    },
+    {
+        name = "2018-03-09-162200_add_strict_timeframe_validation_defaults",
+        up = [[
+               ALTER TABLE wsse_keys ADD COLUMN strict_timeframe_validation boolean DEFAULT TRUE;
+            ]],
+        down = [[
+              ALTER TABLE wsse_keys DROP COLUMN strict_timeframe_validation;
+            ]]
     }
 }

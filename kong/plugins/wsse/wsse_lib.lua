@@ -6,12 +6,17 @@ local TimeframeValidator = require "kong.plugins.wsse.timeframe_validator"
 local Wsse = {}
 
 local function check_required_params(wsse_params)
-    if wsse_params["username"] == nil
-    or wsse_params["password_digest"] == nil
-    or wsse_params["nonce"] == nil
-    or wsse_params["created"] == nil
-    then
-        error("error")
+    if wsse_params["username"] == nil then
+        error({msg = "The Username field is missing from WSSE authenticaion header."})
+    end
+    if wsse_params["password_digest"] == nil then
+        error({msg = "The PasswordDigest field is missing from WSSE authenticaion header."})
+    end
+    if wsse_params["nonce"] == nil then
+        error({msg = "The Nonce field is missing from WSSE authenticaion header."})
+    end
+    if wsse_params["created"] == nil then
+        error({msg = "The Created field is missing from WSSE authenticaion header."})
     end
 end
 
@@ -25,7 +30,7 @@ end
 
 local function parse_header(header_string)
     if (header_string == "") then
-        error("error")
+        error({msg = "WSSE authenticaion header is empty."})
     end
 
     local wsse_params = {
@@ -48,7 +53,7 @@ local function validate_credentials(wsse_params, secret)
     local digest = generate_password_digest(nonce, created, secret)
 
     if (digest ~= wsse_params['password_digest']) then
-        error('Invalid credentials!')
+        error({msg = "Credentials are invalid."})
     end
 end
 
@@ -64,17 +69,26 @@ function Wsse:new(key_db, timeframe_validation_treshhold_in_minutes)
 end
 
 function Wsse:authenticate(header_string)
+    local secret
+    local strict_timeframe_validation
     local wsse_params = parse_header(header_string)
 
     check_required_params(wsse_params)
-    secret = self.key_db.find_by_username(wsse_params['username'])
+    local status, err = pcall(function()
+        local wsse_key = self.key_db.find_by_username(wsse_params['username'])
+        strict_timeframe_validation = wsse_key['strict_timeframe_validation']
+        secret = wsse_key['secret']
+    end)
+    if not status then
+        error({msg = "Credentials are invalid."})
+    end
     validate_credentials(wsse_params, secret)
-    self.timeframe_validator:validate(wsse_params.created)
+    self.timeframe_validator:validate(wsse_params.created, strict_timeframe_validation)
 end
 
 function Wsse.generate_header(username, secret, created, nonce)
     if username == nil or secret == nil then
-        error("Username and secret are required!")
+        error({msg = "Username and secret are required."})
     end
 
     created = created or os.date("!%Y-%m-%dT%TZ")

@@ -8,7 +8,7 @@ describe("wsse timeframe validator", function()
     describe("#validate", function()
 
         it("raises error when timestamp string is not in valid format", function()
-            assert.has_error(function() timeframe_validator:validate("not valid timeframe string") end, "not valid timeframe format")
+            assert.has_error(function() timeframe_validator:validate("not valid timeframe string") end, {msg = "Timeframe is invalid."})
         end)
 
         local formats = {
@@ -27,12 +27,12 @@ describe("wsse timeframe validator", function()
 
         it("raises error when the given timestamp is more than 5 minutes ahead", function()
             local five_minutes_from_now = date(true):addseconds(301):fmt('${iso}Z')
-            assert.has_error(function() timeframe_validator:validate(five_minutes_from_now) end, "timestamp is out of threshold")
+            assert.has_error(function() timeframe_validator:validate(five_minutes_from_now) end, {msg = "Timeframe is invalid."})
         end)
 
         it("raises error when the given timestamp is more than 5 minutes behind", function()
             local five_minutes_from_now = date(true):addseconds(-301):fmt('${iso}Z')
-            assert.has_error(function() timeframe_validator:validate(five_minutes_from_now) end, "timestamp is out of threshold")
+            assert.has_error(function() timeframe_validator:validate(five_minutes_from_now) end, {msg = "Timeframe is invalid."})
         end)
 
         it("returns true when validation succeeds", function()
@@ -63,9 +63,15 @@ describe("wsse timeframe validator", function()
                 return now
             end
 
-            assert.has.error(function() timeframe_validator:validate(invalid_timestamp) end, "timestamp is out of threshold")
+            assert.has.error(function() timeframe_validator:validate(invalid_timestamp) end, {msg = "Timeframe is invalid."})
 
             os.time = old_time
+        end)
+
+        it("not raises error when timeframe is not valid with non strict mode", function ()
+            local invalid_timestamp = date(2017,10,29,1,59,17):fmt('${iso}Z')
+
+            assert.has_no.error(function() timeframe_validator:validate(invalid_timestamp, false) end)
         end)
 
     end)

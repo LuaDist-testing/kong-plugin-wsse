@@ -77,7 +77,8 @@ describe("Plugin: wsse (access)", function()
         }
       })
 
-      assert.res_status(401, res)
+      local body = assert.res_status(401, res)
+      assert.is_equal('{"message":"WSSE authentication header not found!"}', body)
     end)
 
     it("responds with status 401 when wsse header format is invalid", function()
@@ -90,10 +91,11 @@ describe("Plugin: wsse (access)", function()
         }
       })
 
-      assert.res_status(401, res)
+      local body = assert.res_status(401, res)
+      assert.is_equal('{"message":"The Username field is missing from WSSE authenticaion header."}', body)
     end)
 
-    it("responds with status 200 when wsse header format is valid", function()
+    it("responds with status 200 when wsse header is valid", function()
       local header = Wsse.generate_header("test", "test")
 
       assert(admin_client:send {
@@ -120,7 +122,7 @@ describe("Plugin: wsse (access)", function()
       assert.res_status(200, res)
     end)
 
-    it("responds with satus 401 when wsse key not found", function()
+    it("responds with status 401 when wsse key not found", function()
       assert(admin_client:send {
         method = "POST",
         path = "/consumers/test/wsse_key/",
@@ -142,6 +144,34 @@ describe("Plugin: wsse (access)", function()
       })
 
       assert.res_status(401, res)
+    end)
+
+    it("responds with 200 when timeframe is invalid and non strict user", function ()
+      local header = Wsse.generate_header("test2", "test2", "2017-02-27T09:46:22Z")
+
+      assert(admin_client:send {
+        method = "POST",
+        path = "/consumers/test/wsse_key/",
+        body = {
+          key = 'test2',
+          secret = 'test2',
+          strict_timeframe_validation = false
+        },
+        headers = {
+          ["Content-Type"] = "application/json"
+        }
+      })
+
+      local res = assert(client:send {
+        method = "GET",
+        path = "/request",
+        headers = {
+          ["Host"] = "test1.com",
+          ["X-WSSE"] = header
+        }
+      })
+
+      assert.res_status(200, res)
     end)
   end)
 

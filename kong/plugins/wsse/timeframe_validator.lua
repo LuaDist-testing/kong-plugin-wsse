@@ -38,13 +38,17 @@ function TimeframeValidator:new(threshold_in_seconds)
     self.threshold_in_seconds = threshold_in_seconds or 300
 end
 
-function TimeframeValidator:validate(timestamp)
+function TimeframeValidator:validate(timestamp, strict_timeframe_validation)
+    if strict_timeframe_validation == false then
+        return true
+    end
+
     if not is_valid_timestamp_format(timestamp) then
-        error("not valid timeframe format")
+        error({msg = "Timeframe is invalid."})
     end
 
     if (is_timestamp_within_threshold(timestamp, self.threshold_in_seconds)) then
-        error("timestamp is out of threshold")
+        error({msg = "Timeframe is invalid."})
     end
 
     return true
