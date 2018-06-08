@@ -4,8 +4,6 @@ local Wsse = require "kong.plugins.wsse.wsse_lib"
 local singletons = require "kong.singletons"
 
 describe("Plugin: wsse (access)", function()
-  local client
-  local admin_client
   local dev_env = {
     custom_plugins = 'wsse'
   }
@@ -34,19 +32,9 @@ describe("Plugin: wsse (access)", function()
     helpers.stop_kong(nil)
   end)
 
-  before_each(function()
-    client = helpers.proxy_client()
-    admin_client = helpers.admin_client()
-  end)
-
-  after_each(function()
-    if client then client:close() end
-    if admin_client then admin_client:close() end
-  end)
-
   describe("Admin API", function()
     it("registered the plugin globally", function()
-      local res = assert(admin_client:send {
+      local res = assert(helpers.admin_client():send {
         method = "GET",
         path = "/plugins/" .. plugin.id,
       })
@@ -58,7 +46,7 @@ describe("Plugin: wsse (access)", function()
     end)
 
     it("registered the plugin for the api", function()
-      local res = assert(admin_client:send {
+      local res = assert(helpers.admin_client():send {
         method = "GET",
         path = "/plugins/" ..plugin.id,
       })
@@ -66,11 +54,67 @@ describe("Plugin: wsse (access)", function()
       local json = cjson.decode(body)
       assert.is_equal(api_id, json.api_id)
     end)
+
+    it("DELETE removes wsse_key", function()
+
+      assert(helpers.admin_client():send {
+        method = "POST",
+        path = "/consumers/test/wsse_key",
+        body = {
+          key = 'test1234',
+          secret = 'test1234'
+        },
+        headers = {
+          ["Content-Type"] = "application/json"
+        }
+      })
+
+      local res = assert(helpers.admin_client():send {
+        method = "DELETE",
+        path = "/consumers/test/wsse_key/test1234"
+      })
+
+      assert.res_status(204, res)
+    end)
+
+    it("returns with proper wsse key without secret when wsse key exists", function ()
+      assert(helpers.admin_client():send {
+        method = "POST",
+        path = "/consumers/test/wsse_key/",
+        body = {
+          key = 'test2',
+          secret = 'test2',
+          strict_timeframe_validation = false
+        },
+        headers = {
+          ["Content-Type"] = "application/json"
+        }
+      })
+
+      local res_get = assert(helpers.admin_client():send {
+        method = "GET",
+        path = "/consumers/test/wsse_key/test2",
+      })
+
+      local body = assert.res_status(200, res_get)
+      local wsse_get = cjson.decode(body)
+      assert.is_equal('test2', wsse_get.key)
+      assert.is_nil(wsse_get.secret)
+    end)
+
+    it("reponds with status code 404 when wsse key does not exist", function ()
+      local res_get = assert(helpers.admin_client():send {
+        method = "GET",
+        path = "/consumers/test/wsse_key/non_existing_key",
+      })
+
+      assert.res_status(404, res_get)
+    end)
   end)
 
   describe("Authentication", function()
     it("responds with status 401 if request not has wsse header and anonymous not allowed", function()
-      local res = assert(client:send {
+      local res = assert(helpers.proxy_client():send {
         method = "GET",
         path = "/request",
         headers = {
@@ -83,7 +127,7 @@ describe("Plugin: wsse (access)", function()
     end)
 
     it("responds with status 401 when wsse header format is invalid", function()
-      local res = assert(client:send {
+      local res = assert(helpers.proxy_client():send {
         method = "GET",
         path = "/request",
         headers = {
@@ -99,7 +143,7 @@ describe("Plugin: wsse (access)", function()
     it("responds with status 200 when wsse header is valid", function()
       local header = Wsse.generate_header("test", "test")
 
-      assert(admin_client:send {
+      assert(helpers.admin_client():send {
         method = "POST",
         path = "/consumers/test/wsse_key/",
         body = {
@@ -111,7 +155,7 @@ describe("Plugin: wsse (access)", function()
         }
       })
 
-      local res = assert(client:send {
+      local res = assert(helpers.proxy_client():send {
         method = "GET",
         path = "/request",
         headers = {
@@ -124,7 +168,7 @@ describe("Plugin: wsse (access)", function()
     end)
 
     it("responds with status 401 when wsse key not found", function()
-      assert(admin_client:send {
+      assert(helpers.admin_client():send {
         method = "PUT",
         path = "/consumers/test/wsse_key/",
         body = {
@@ -135,7 +179,7 @@ describe("Plugin: wsse (access)", function()
         }
       })
 
-      local res = assert(client:send {
+      local res = assert(helpers.proxy_client():send {
         method = "GET",
         path = "/request",
         headers = {
@@ -150,7 +194,7 @@ describe("Plugin: wsse (access)", function()
     it("responds with 200 when timeframe is invalid and non strict user", function ()
       local header = Wsse.generate_header("test2", "test2", "2017-02-27T09:46:22Z")
 
-      assert(admin_client:send {
+      assert(helpers.admin_client():send {
         method = "POST",
         path = "/consumers/test/wsse_key/",
         body = {
@@ -163,7 +207,7 @@ describe("Plugin: wsse (access)", function()
         }
       })
 
-      local res = assert(client:send {
+      local res = assert(helpers.proxy_client():send {
         method = "GET",
         path = "/request",
         headers = {
